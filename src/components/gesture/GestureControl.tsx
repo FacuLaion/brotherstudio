@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Hand, Eye, X, Loader2, Smartphone } from "lucide-react";
 import { getDictionary } from "@/content/dictionary";
-import { navigateToSection } from "@/lib/scroll";
+import { scrollByPixels } from "@/lib/scroll";
 import { setHead, setHeadActive } from "@/lib/immersive";
 import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -71,12 +71,9 @@ export function GestureControl({ lang }: { lang: Locale }) {
   const faceRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const frame = useRef(0);
   const lastDetect = useRef(0);
-  const lastTrigger = useRef(0);
   const wasPinched = useRef(false);
-  const triggered = useRef(false);
-  const pinchStartY = useRef(0);
+  const lastY = useRef(0);
   const headEMA = useRef({ x: 0, y: 0 });
   const faceDetectedRef = useRef(false);
   const gyroBase = useRef<{ beta: number; gamma: number } | null>(null);
@@ -91,8 +88,8 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const beta = e.beta ?? 0; // front-back tilt
     const gamma = e.gamma ?? 0; // left-right tilt
     if (!gyroBase.current) gyroBase.current = { beta, gamma };
-    const dx = clamp((gamma - gyroBase.current.gamma) / 22, 1.6);
-    const dy = clamp(-(beta - gyroBase.current.beta) / 22, 1.6);
+    const dx = clamp((gamma - gyroBase.current.gamma) / 14, 1.8);
+    const dy = clamp(-(beta - gyroBase.current.beta) / 14, 1.8);
     headEMA.current.x = headEMA.current.x * 0.8 + dx * 0.2;
     headEMA.current.y = headEMA.current.y * 0.8 + dy * 0.2;
     setHead(headEMA.current.x, headEMA.current.y);
@@ -173,20 +170,19 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const isPinch = ratio < 0.45;
     setPinching(isPinch);
     if (isPinch) {
-      const y = index.y;
+      // Grab + drag: while pinched, hand movement drives the scroll 1:1-ish.
+      // Drag the hand UP → page scrolls down (touch convention). Release → stays put.
+      const y = index.y; // normalized 0 (top) .. 1 (bottom)
       if (!wasPinched.current) {
         wasPinched.current = true;
-        triggered.current = false;
-        pinchStartY.current = y;
-      }
-      const dy = y - pinchStartY.current;
-      if (!triggered.current && Math.abs(dy) > 0.1 && now - lastTrigger.current > 700) {
-        navigateToSection(dy > 0 ? "next" : "prev");
-        triggered.current = true;
-        lastTrigger.current = now;
+        lastY.current = y; // anchor the grab; no jump on the first frame
+      } else {
+        const dy = y - lastY.current;
+        lastY.current = y;
+        scrollByPixels(-dy * window.innerHeight * 4);
       }
     } else {
-      wasPinched.current = false;
+      wasPinched.current = false; // released → no more scrolling, page stays
     }
   }, []);
 
@@ -196,13 +192,15 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const now = performance.now();
     if (video && video.readyState >= 2 && now - lastDetect.current > 33) {
       lastDetect.current = now;
-      const turn = frame.current % 3;
-      frame.current++;
       try {
-        if (turn === 2 && handRef.current) detectHand(video, now);
-        else if (faceRef.current) detectFace(video, now);
+        if (faceRef.current) detectFace(video, now);
       } catch {
-        /* transient — keep looping */
+        /* transient */
+      }
+      try {
+        if (handRef.current) detectHand(video, now);
+      } catch {
+        /* transient */
       }
     }
     rafRef.current = requestAnimationFrame(loop);
@@ -345,17 +343,19 @@ export function GestureControl({ lang }: { lang: Locale }) {
               {t.experimental}
             </span>
           </button>
-          <button
-            type="button"
-            onClick={() => setMode("gaze")}
-            className="glass flex items-center gap-2 rounded-full px-3 py-2 text-xs text-fg-muted transition-colors hover:text-fg"
-          >
-            <Eye size={14} className="text-coral" />
-            {es ? "Control por mirada" : "Gaze control"}
-            <span className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[0.55rem] uppercase tracking-wider text-fg-dim">
-              {t.experimental}
-            </span>
-          </button>
+          {!coarse && (
+            <button
+              type="button"
+              onClick={() => setMode("gaze")}
+              className="glass flex items-center gap-2 rounded-full px-3 py-2 text-xs text-fg-muted transition-colors hover:text-fg"
+            >
+              <Eye size={14} className="text-coral" />
+              {es ? "Control por mirada" : "Gaze control"}
+              <span className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[0.55rem] uppercase tracking-wider text-fg-dim">
+                {t.experimental}
+              </span>
+            </button>
+          )}
         </>
       )}
 

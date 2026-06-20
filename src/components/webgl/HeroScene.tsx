@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Float,
   Icosahedron,
@@ -18,6 +18,9 @@ type PointerRef = React.RefObject<{ x: number; y: number }>;
 
 function Blob({ pointer }: { pointer: PointerRef }) {
   const group = useRef<THREE.Group>(null);
+  const { size } = useThree();
+  // Smaller on phones so there's room to SEE the parallax/tilt move it.
+  const sceneScale = size.width < 768 ? 0.5 : 1;
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -45,7 +48,7 @@ function Blob({ pointer }: { pointer: PointerRef }) {
   });
 
   return (
-    <group ref={group}>
+    <group ref={group} scale={sceneScale}>
       <Float speed={1.4} rotationIntensity={0.4} floatIntensity={0.7}>
         <Icosahedron args={[1.6, 16]}>
           <MeshDistortMaterial
