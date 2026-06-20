@@ -5,6 +5,7 @@ import { Hand, Eye, X, Loader2, Smartphone } from "lucide-react";
 import { getDictionary } from "@/content/dictionary";
 import { scrollByPixels } from "@/lib/scroll";
 import { setHead, setHeadActive } from "@/lib/immersive";
+import { OneEuroFilter } from "@/lib/oneEuro";
 import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { GazeScroll } from "./GazeScroll";
@@ -72,8 +73,12 @@ export function GestureControl({ lang }: { lang: Locale }) {
   const streamRef = useRef<MediaStream | null>(null);
 
   const lastDetect = useRef(0);
-  const wasPinched = useRef(false);
+  const pinchOn = useRef(false);
+  const engageCount = useRef(0);
+  const releaseCount = useRef(0);
   const lastY = useRef(0);
+  const ratioEMA = useRef(1);
+  const yFilter = useRef<OneEuroFilter | null>(null);
   const headEMA = useRef({ x: 0, y: 0 });
   const faceDetectedRef = useRef(false);
   const gyroBase = useRef<{ beta: number; gamma: number } | null>(null);
@@ -155,9 +160,15 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const res = handRef.current?.detectForVideo(video, now);
     const lm = res?.landmarks?.[0] as LM[] | undefined;
     if (!lm) {
+      // Hand lost → release; reset filters so re-acquiring doesn't jump.
       setHandDetected(false);
-      setPinching(false);
-      wasPinched.current = false;
+      if (pinchOn.current) {
+        pinchOn.current = false;
+        setPinching(false);
+      }
+      engageCount.current = 0;
+      releaseCount.current = 0;
+      yFilter.current?.reset();
       return;
     }
     setHandDetected(true);
@@ -166,23 +177,45 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const wrist = lm[0];
     const midMcp = lm[9];
     if (!thumb || !index || !wrist || !midMcp) return;
-    const ratio = dist(thumb, index) / (dist(wrist, midMcp) || 1e-4);
-    const isPinch = ratio < 0.45;
-    setPinching(isPinch);
-    if (isPinch) {
-      // Grab + drag: while pinched, hand movement drives the scroll 1:1-ish.
-      // Drag the hand UP → page scrolls down (touch convention). Release → stays put.
-      const y = index.y; // normalized 0 (top) .. 1 (bottom)
-      if (!wasPinched.current) {
-        wasPinched.current = true;
-        lastY.current = y; // anchor the grab; no jump on the first frame
-      } else {
-        const dy = y - lastY.current;
-        lastY.current = y;
-        scrollByPixels(-dy * window.innerHeight * 4);
+
+    // Scale-invariant pinch ratio, EMA-smoothed to stop threshold flicker.
+    const rawRatio = dist(thumb, index) / (dist(wrist, midMcp) || 1e-4);
+    ratioEMA.current = ratioEMA.current * 0.5 + rawRatio * 0.5;
+    const ratio = ratioEMA.current;
+
+    // One-Euro filtered fingertip Y → no jitter, still responsive on fast drags.
+    const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
+    const y = filter.filter(index.y, now / 1000);
+
+    if (!pinchOn.current) {
+      // Engage only after a few clearly-pinched frames (kills false positives).
+      engageCount.current = ratio < 0.3 ? engageCount.current + 1 : 0;
+      if (engageCount.current >= 3) {
+        pinchOn.current = true;
+        setPinching(true);
+        lastY.current = y; // anchor — no scroll on the engage frame
+        releaseCount.current = 0;
       }
     } else {
-      wasPinched.current = false; // released → no more scrolling, page stays
+      // Release after a couple of clearly-open frames → stop; page stays put.
+      releaseCount.current = ratio > 0.48 ? releaseCount.current + 1 : 0;
+      if (releaseCount.current >= 2) {
+        pinchOn.current = false;
+        setPinching(false);
+        engageCount.current = 0;
+        lastY.current = y;
+        return;
+      }
+      // Drag only while fingers stay clearly together (no abrupt jump on release).
+      if (ratio < 0.42) {
+        let dy = y - lastY.current; // down positive
+        dy = Math.max(-0.045, Math.min(0.045, dy)); // clamp → no spike from a glitch frame
+        if (Math.abs(dy) > 0.0015) {
+          // Drag hand UP → page scrolls DOWN (touch convention).
+          scrollByPixels(-dy * window.innerHeight * 3);
+        }
+      }
+      lastY.current = y;
     }
   }, []);
 
@@ -284,6 +317,11 @@ export function GestureControl({ lang }: { lang: Locale }) {
     setFaceDetected(false);
     faceDetectedRef.current = false;
     setPinching(false);
+    pinchOn.current = false;
+    engageCount.current = 0;
+    releaseCount.current = 0;
+    ratioEMA.current = 1;
+    yFilter.current?.reset();
     setStatus("idle");
     setMode("off");
   }, [onOrient]);

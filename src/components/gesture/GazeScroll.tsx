@@ -44,6 +44,7 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
   const topRatio = useRef(0.35);
   const bottomRatio = useRef(0.65);
   const frameCount = useRef(0);
+  const gazeEMA = useRef<number | null>(null);
 
   const setPhaseBoth = useCallback((p: Phase) => {
     phaseRef.current = p;
@@ -110,8 +111,10 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
             }
           }
         } else if (ratio != null && p === "running") {
+          gazeEMA.current =
+            gazeEMA.current == null ? ratio : gazeEMA.current * 0.65 + ratio * 0.35;
           const span = bottomRatio.current - topRatio.current || 1e-3;
-          let tn = (ratio - topRatio.current) / span;
+          let tn = (gazeEMA.current - topRatio.current) / span;
           tn = Math.max(0, Math.min(1, tn));
           let v = 0;
           if (tn < 0.5 - DEAD) v = -((0.5 - DEAD - tn) / (0.5 - DEAD));
@@ -192,7 +195,7 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
   const calibrating = phase === "calTop" || phase === "calBottom";
 
   return (
-    <div className="fixed inset-0 z-[120]">
+    <div className="pointer-events-none fixed inset-0 z-[120]">
       <video ref={videoRef} muted playsInline className="hidden" aria-hidden />
 
       {/* Calibration overlay */}
@@ -228,8 +231,30 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
         </div>
       )}
 
+      {/* Persistent gaze targets while running — look AT a dot to scroll */}
+      {phase === "running" && (
+        <>
+          <div
+            className={cn(
+              "pointer-events-none absolute left-1/2 top-10 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full border-2 border-coral transition-all duration-200",
+              dir === -1 ? "scale-125 bg-coral shadow-glow" : "bg-coral/20",
+            )}
+          >
+            <ArrowUp size={18} className={dir === -1 ? "text-bg" : "text-coral"} />
+          </div>
+          <div
+            className={cn(
+              "pointer-events-none absolute bottom-10 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full border-2 border-coral transition-all duration-200",
+              dir === 1 ? "scale-125 bg-coral shadow-glow" : "bg-coral/20",
+            )}
+          >
+            <ArrowDown size={18} className={dir === 1 ? "text-bg" : "text-coral"} />
+          </div>
+        </>
+      )}
+
       {/* Status / control panel */}
-      <div className="glass absolute bottom-5 left-5 w-64 rounded-2xl p-4">
+      <div className="glass pointer-events-auto absolute bottom-5 left-5 w-64 rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <span className="kicker">{es ? "Mirada (beta)" : "Gaze (beta)"}</span>
           <button type="button" onClick={close} aria-label={t.disable} className="text-fg-dim hover:text-fg">
@@ -265,8 +290,8 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
             </div>
             <p className="mt-3 text-[0.65rem] text-fg-dim">
               {es
-                ? "Mirá hacia arriba para subir y hacia abajo para bajar. El centro no scrollea."
-                : "Look up to scroll up, down to scroll down. The center doesn't scroll."}
+                ? "Mirá el punto rojo de arriba para subir y el de abajo para bajar. El centro no scrollea."
+                : "Look at the top red dot to scroll up, the bottom one to go down. The center doesn't scroll."}
             </p>
           </>
         )}
