@@ -16,7 +16,7 @@ type LM = { x: number; y: number; z?: number };
 
 const CAL_MS = 1600; // calibration dwell per target
 const SPEED = 26; // px per frame at full deflection
-const DEAD = 0.14; // central dead zone (no scroll)
+const DEAD = 0.3; // central dead zone (no scroll) — wide so only a clear look up/down scrolls
 
 /**
  * EXPERIMENTAL gaze-to-scroll. Calibrates "look up" and "look down", then maps
@@ -112,7 +112,7 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
           }
         } else if (ratio != null && p === "running") {
           gazeEMA.current =
-            gazeEMA.current == null ? ratio : gazeEMA.current * 0.65 + ratio * 0.35;
+            gazeEMA.current == null ? ratio : gazeEMA.current * 0.78 + ratio * 0.22;
           const span = bottomRatio.current - topRatio.current || 1e-3;
           let tn = (gazeEMA.current - topRatio.current) / span;
           tn = Math.max(0, Math.min(1, tn));
