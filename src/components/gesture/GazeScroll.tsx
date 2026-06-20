@@ -15,8 +15,9 @@ type Phase = "loading" | "denied" | "error" | "insecure" | "calTop" | "calBottom
 type LM = { x: number; y: number; z?: number };
 
 const CAL_MS = 1600; // calibration dwell per target
-const SPEED = 26; // px per frame at full deflection
-const DEAD = 0.3; // central dead zone (no scroll) — wide so only a clear look up/down scrolls
+const SPEED = 24; // px per frame at full deflection
+const DEAD = 0.4; // central dead zone (no scroll) — very wide: only a clear look at a dot counts
+const DWELL_FRAMES = 10; // must hold the gaze on a dot (~0.3s) before it starts scrolling
 
 /**
  * EXPERIMENTAL gaze-to-scroll. Calibrates "look up" and "look down", then maps
@@ -45,6 +46,8 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
   const bottomRatio = useRef(0.65);
   const frameCount = useRef(0);
   const gazeEMA = useRef<number | null>(null);
+  const gazeZone = useRef(0); // -1 up, 1 down, 0 center
+  const dwellCount = useRef(0);
 
   const setPhaseBoth = useCallback((p: Phase) => {
     phaseRef.current = p;
@@ -112,18 +115,33 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
           }
         } else if (ratio != null && p === "running") {
           gazeEMA.current =
-            gazeEMA.current == null ? ratio : gazeEMA.current * 0.78 + ratio * 0.22;
+            gazeEMA.current == null ? ratio : gazeEMA.current * 0.82 + ratio * 0.18;
           const span = bottomRatio.current - topRatio.current || 1e-3;
           let tn = (gazeEMA.current - topRatio.current) / span;
           tn = Math.max(0, Math.min(1, tn));
+
+          // Which dot is the gaze clearly on? (DEAD is wide → center never scrolls.)
+          let zone = 0;
           let v = 0;
-          if (tn < 0.5 - DEAD) v = -((0.5 - DEAD - tn) / (0.5 - DEAD));
-          else if (tn > 0.5 + DEAD) v = (tn - (0.5 + DEAD)) / (0.5 - DEAD);
-          if (v !== 0) scrollByPixels(v * SPEED);
-          frameCount.current++;
-          if (frameCount.current % 5 === 0) {
-            setDir(v < -0.05 ? -1 : v > 0.05 ? 1 : 0);
+          if (tn < 0.5 - DEAD) {
+            zone = -1;
+            v = -((0.5 - DEAD - tn) / (0.5 - DEAD));
+          } else if (tn > 0.5 + DEAD) {
+            zone = 1;
+            v = (tn - (0.5 + DEAD)) / (0.5 - DEAD);
           }
+
+          // Dwell: hold the gaze on the same dot for ~0.3s before it starts scrolling.
+          if (zone !== 0 && zone === gazeZone.current) dwellCount.current++;
+          else {
+            gazeZone.current = zone;
+            dwellCount.current = 0;
+          }
+          const armed = zone !== 0 && dwellCount.current >= DWELL_FRAMES;
+          if (armed) scrollByPixels(v * SPEED);
+
+          frameCount.current++;
+          if (frameCount.current % 4 === 0) setDir(armed ? (zone as -1 | 1) : 0);
         }
       } catch {
         /* transient */
