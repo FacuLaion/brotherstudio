@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Brother Studios — design tokens (dark futurist + coral)
+   Inspired by vertex3d.asia: near-black base, single coral
+   accent, two-voice typography (grotesque + mono).
+   ============================================================ */
+@theme {
+  --color-bg: #0a0a0b;
+  --color-bg-elevated: #111317;
+  --color-surface: #16181d;
+  --color-line: #20242c;
+  --color-coral: #de4959;
+  --color-coral-bright: #ff5d6c;
+  --color-fg: #eaeaec;
+  --color-fg-muted: #9aa0a8;
+  --color-fg-dim: #6e737b;
+
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --shadow-glow: 0 0 0 1px rgba(222, 73, 89, 0.4), 0 8px 40px -8px rgba(222, 73, 89, 0.45);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+/* Hairline borders by default (Tailwind v4 defaults border-color to currentColor) */
+*,
+::before,
+::after {
+  border-color: var(--color-line);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+/* Lenis smooth scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  background-image:
+    radial-gradient(48rem 48rem at 78% -12%, rgba(222, 73, 89, 0.1), transparent 60%),
+    radial-gradient(42rem 42rem at -8% 108%, rgba(64, 92, 178, 0.08), transparent 55%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+::selection {
+  background: var(--color-coral);
+  color: #0a0a0b;
+}
+
+/* Custom scrollbar — subtle on the dark canvas */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 9999px;
+  border: 2px solid var(--color-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-fg-dim);
+}
+
+/* ----- reusable text accents ----- */
+.kicker {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  color: var(--color-fg-muted);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Big editorial display headings: tight, slightly negative tracking */
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+/* Thin coral hairline divider */
+.hairline {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-line) 12%,
+    var(--color-line) 88%,
+    transparent
+  );
+}
+
+/* Frosted glass surface for cards / overlays */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+@keyframes fadeInScene {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Head-coupled UI parallax — driven by --head-x/--head-y from immersive mode.
+   When head tracking is off the vars are 0, so there is no transform. */
+[data-parallax] {
+  transition: transform 0.16s ease-out;
+  will-change: transform;
+}
+[data-parallax="far"] {
+  transform: translate3d(calc(var(--head-x, 0) * 64px), calc(var(--head-y, 0) * -64px), 0);
+}
+[data-parallax="near"] {
+  transform: perspective(1400px) rotateY(calc(var(--head-x, 0) * 4deg))
+    rotateX(calc(var(--head-y, 0) * 4deg)) translate3d(calc(var(--head-x, 0) * -28px), calc(var(--head-y, 0) * 28px), 0);
+}
+
+/* Honor user motion preferences globally as a safety net */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

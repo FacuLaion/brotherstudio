@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.gitignore
+certs
+*.pem
+deploy
+README.md
+npm-debug.log*
+.DS_Store
+.vercel
+.env*
