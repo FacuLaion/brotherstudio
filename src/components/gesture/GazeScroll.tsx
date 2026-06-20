@@ -54,20 +54,19 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
     setPhase(p);
   }, []);
 
+  // Vertical "look" signal from HEAD PITCH (robust) instead of raw iris gaze,
+  // which is far too noisy on a webcam. Eyes→nose gap normalized by face height:
+  // tilt down → gap shrinks, tilt up → gap grows. Blink-proof and distance-stable.
   const ratioOf = (lm: LM[]): number | null => {
-    const calc = (up: number, low: number, iris: number) => {
-      const u = lm[up];
-      const l = lm[low];
-      const i = lm[iris];
-      if (!u || !l || !i) return null;
-      const d = l.y - u.y || 1e-4;
-      return (i.y - u.y) / d;
-    };
-    const r = calc(159, 145, 468); // right eye
-    const l = calc(386, 374, 473); // left eye
-    const vals = [r, l].filter((v): v is number => v != null);
-    if (!vals.length) return null;
-    return vals.reduce((a, b) => a + b, 0) / vals.length;
+    const lEye = lm[33];
+    const rEye = lm[263];
+    const nose = lm[1];
+    const fore = lm[10]; // forehead
+    const chin = lm[152];
+    if (!lEye || !rEye || !nose || !fore || !chin) return null;
+    const eyeMidY = (lEye.y + rEye.y) / 2;
+    const faceH = Math.abs(chin.y - fore.y) || 1e-4;
+    return (nose.y - eyeMidY) / faceH;
   };
 
   const stop = useCallback(() => {
@@ -116,17 +115,18 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
         } else if (ratio != null && p === "running") {
           gazeEMA.current =
             gazeEMA.current == null ? ratio : gazeEMA.current * 0.82 + ratio * 0.18;
-          const span = bottomRatio.current - topRatio.current || 1e-3;
-          let tn = (gazeEMA.current - topRatio.current) / span;
+          const span = bottomRatio.current - topRatio.current;
+          const reliable = Math.abs(span) > 0.04; // calibration range big enough?
+          let tn = (gazeEMA.current - topRatio.current) / (span || 1e-3);
           tn = Math.max(0, Math.min(1, tn));
 
           // Which dot is the gaze clearly on? (DEAD is wide → center never scrolls.)
           let zone = 0;
           let v = 0;
-          if (tn < 0.5 - DEAD) {
+          if (reliable && tn < 0.5 - DEAD) {
             zone = -1;
             v = -((0.5 - DEAD - tn) / (0.5 - DEAD));
-          } else if (tn > 0.5 + DEAD) {
+          } else if (reliable && tn > 0.5 + DEAD) {
             zone = 1;
             v = (tn - (0.5 + DEAD)) / (0.5 - DEAD);
           }
@@ -243,7 +243,9 @@ export function GazeScroll({ lang, onClose }: { lang: Locale; onClose: () => voi
                   : "Look at the bottom dot"}
             </p>
             <p className="mt-2 text-sm text-fg-muted">
-              {es ? "Mantené la mirada un segundo…" : "Hold your gaze for a second…"}
+              {es
+                ? "Apuntá la cara al punto un segundo…"
+                : "Aim your face at the dot for a second…"}
             </p>
           </div>
         </div>
