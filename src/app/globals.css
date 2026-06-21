@@ -152,6 +152,16 @@ body {
     rotateX(calc(var(--head-y, 0) * 4deg)) translate3d(calc(var(--head-x, 0) * -28px), calc(var(--head-y, 0) * 28px), 0);
 }
 
+/* Cursor spotlight grid — the 1px gaps glow coral around the pointer */
+.spotlight-grid {
+  position: relative;
+  background: radial-gradient(
+    280px circle at var(--spot-x, -400px) var(--spot-y, -400px),
+    var(--color-coral),
+    var(--color-line) 72%
+  );
+}
+
 /* Honor user motion preferences globally as a safety net */
 @media (prefers-reduced-motion: reduce) {
   html {

@@ -4,6 +4,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { services } from "@/content/services";
 import { tr } from "@/content/types";
 import { pad2 } from "@/lib/utils";
+import { SpotlightGrid } from "@/components/motion/SpotlightGrid";
 
 export default function Services({ lang, dict }: SectionProps) {
   return (
@@ -11,7 +12,7 @@ export default function Services({ lang, dict }: SectionProps) {
       <div className="mx-auto w-full max-w-7xl">
         <SectionHeading kicker={dict.services.kicker} title={dict.services.title} sub={dict.services.sub} />
 
-        <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
+        <SpotlightGrid className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-line sm:grid-cols-2">
           {services.map((s) => (
             <div
               key={s.id}
@@ -34,7 +35,7 @@ export default function Services({ lang, dict }: SectionProps) {
               </ul>
             </div>
           ))}
-        </div>
+        </SpotlightGrid>
       </div>
     </section>
   );
