@@ -3,6 +3,7 @@ import type { SectionProps } from "@/components/types";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { projects } from "@/content/projects";
 import { tr } from "@/content/types";
+import { TiltCard } from "@/components/motion/TiltCard";
 
 export default function Work({ lang, dict }: SectionProps) {
   return (
@@ -12,10 +13,10 @@ export default function Work({ lang, dict }: SectionProps) {
 
         <div className="mt-16 grid gap-6 md:grid-cols-2">
           {projects.map((p, i) => (
-            <article
+            <TiltCard
               key={p.id}
               data-reveal
-              className="group relative overflow-hidden rounded-2xl border border-line bg-surface transition-colors duration-300 hover:border-fg-dim"
+              className="group relative overflow-hidden rounded-2xl border border-line bg-surface hover:border-fg-dim"
             >
               {/* Placeholder visual — becomes the scroll-scrub still in M3 */}
               <div className="relative aspect-[16/10] overflow-hidden">
@@ -51,7 +52,7 @@ export default function Work({ lang, dict }: SectionProps) {
                   <ArrowUpRight size={22} />
                 </span>
               </div>
-            </article>
+            </TiltCard>
           ))}
         </div>
       </div>

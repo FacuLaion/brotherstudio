@@ -1,11 +1,13 @@
 import { ArrowRight, CalendarClock } from "lucide-react";
 import type { SectionProps } from "@/components/types";
 import { Kicker } from "@/components/ui/SectionHeading";
+import { Aurora } from "@/components/ui/Aurora";
 import { siteConfig } from "@/content/site";
 
 export default function Contact({ lang, dict }: SectionProps) {
   return (
     <section id="contacto" className="relative px-6 py-28 md:px-10 md:py-40">
+      <Aurora />
       <div className="mx-auto w-full max-w-5xl">
         <div data-reveal className="relative overflow-hidden rounded-3xl border border-line bg-surface p-10 md:p-16">
           <div

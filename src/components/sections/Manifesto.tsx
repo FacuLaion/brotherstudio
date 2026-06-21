@@ -1,9 +1,11 @@
 import type { SectionProps } from "@/components/types";
 import { Kicker } from "@/components/ui/SectionHeading";
+import { Aurora } from "@/components/ui/Aurora";
 
 export default function Manifesto({ dict }: SectionProps) {
   return (
     <section id="manifiesto" className="relative px-6 py-28 md:px-10 md:py-40">
+      <Aurora />
       <div className="mx-auto w-full max-w-5xl">
         <Kicker>{dict.manifesto.kicker}</Kicker>
         <div data-reveal className="mt-8 space-y-6">

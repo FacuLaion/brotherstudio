@@ -3,6 +3,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { processSteps } from "@/content/proof";
 import { tr } from "@/content/types";
 import { pad2 } from "@/lib/utils";
+import { RevealBeam } from "@/components/motion/RevealBeam";
 
 export default function Process({ lang, dict }: SectionProps) {
   return (
@@ -10,7 +11,9 @@ export default function Process({ lang, dict }: SectionProps) {
       <div className="mx-auto w-full max-w-7xl">
         <SectionHeading kicker={dict.process.kicker} title={dict.process.title} sub={dict.process.sub} />
 
-        <ol className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
+        <RevealBeam className="mt-14" />
+
+        <ol className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
           {processSteps.map((step) => (
             <li key={step.index} data-reveal className="relative bg-bg p-8">
               <span className="display text-5xl text-line">{pad2(step.index)}</span>

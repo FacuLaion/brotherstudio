@@ -194,6 +194,106 @@ body {
   }
 }
 
+/* 3D tilt card + glare (Projects) */
+.tilt-card {
+  position: relative;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition:
+    transform 0.25s ease-out,
+    border-color 0.3s ease;
+  will-change: transform;
+}
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  background: radial-gradient(
+    220px circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(255, 255, 255, 0.1),
+    transparent 60%
+  );
+}
+.tilt-card:hover .tilt-glare {
+  opacity: 1;
+}
+
+/* Drawing beam (Process) */
+[data-beam] {
+  position: relative;
+  height: 2px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+[data-beam]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-coral),
+    var(--color-coral-bright),
+    var(--color-coral),
+    transparent
+  );
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-beam][data-in="true"]::after {
+  transform: scaleX(1);
+}
+
+/* Infinite logo marquee (Trust) */
+.marquee {
+  animation: marquee 30s linear infinite;
+}
+.marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Aurora glow (Manifesto / Contact) */
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(110px);
+  opacity: 0.5;
+}
+.aurora-1 {
+  width: 36rem;
+  height: 36rem;
+  top: -12rem;
+  left: -6rem;
+  background: rgba(222, 73, 89, 0.18);
+  animation: auroraA 19s ease-in-out infinite alternate;
+}
+.aurora-2 {
+  width: 30rem;
+  height: 30rem;
+  right: -5rem;
+  bottom: -12rem;
+  background: rgba(64, 92, 178, 0.16);
+  animation: auroraB 23s ease-in-out infinite alternate;
+}
+@keyframes auroraA {
+  to {
+    transform: translate(8rem, 4rem) scale(1.18);
+  }
+}
+@keyframes auroraB {
+  to {
+    transform: translate(-6rem, -5rem) scale(1.14);
+  }
+}
+
 /* Honor user motion preferences globally as a safety net */
 @media (prefers-reduced-motion: reduce) {
   html {

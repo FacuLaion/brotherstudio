@@ -3,6 +3,7 @@ import type { SectionProps } from "@/components/types";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { testimonials, metrics, clientLogos } from "@/content/proof";
 import { tr } from "@/content/types";
+import { CountUp } from "@/components/motion/CountUp";
 
 export default function Proof({ lang, dict }: SectionProps) {
   return (
@@ -14,19 +15,24 @@ export default function Proof({ lang, dict }: SectionProps) {
         <div data-reveal className="mt-14 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
           {metrics.map((m) => (
             <div key={m.value} className="bg-bg p-8 text-center">
-              <p className="display text-4xl text-coral md:text-5xl">{m.value}</p>
+              <CountUp value={m.value} className="display block text-4xl text-coral md:text-5xl" />
               <p className="mt-2 text-sm text-fg-muted">{tr(m.label, lang)}</p>
             </div>
           ))}
         </div>
 
-        {/* Client logos */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-12 gap-y-6 rounded-2xl border border-line bg-surface/40 px-8 py-8">
-          {clientLogos.map((logo) => (
-            <span key={logo} className="display text-xl font-bold tracking-tight text-fg-dim/70">
-              {logo}
-            </span>
-          ))}
+        {/* Client logos — infinite marquee */}
+        <div className="relative mt-10 overflow-hidden rounded-2xl border border-line bg-surface/40 py-8 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
+          <div className="marquee flex w-max items-center gap-x-16 px-8">
+            {[...clientLogos, ...clientLogos].map((logo, i) => (
+              <span
+                key={i}
+                className="display shrink-0 text-xl font-bold tracking-tight text-fg-dim/70"
+              >
+                {logo}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Testimonials */}
