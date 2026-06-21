@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Hand, Eye, X, Loader2, Smartphone } from "lucide-react";
+import { Hand, X, Loader2, Smartphone } from "lucide-react";
 import { getDictionary } from "@/content/dictionary";
 import { scrollByPixels } from "@/lib/scroll";
 import { setHead, setHeadActive } from "@/lib/immersive";
 import { OneEuroFilter } from "@/lib/oneEuro";
 import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { GazeScroll } from "./GazeScroll";
 
 const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
 const HAND_MODEL =
@@ -16,7 +15,7 @@ const HAND_MODEL =
 const FACE_MODEL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
-type Mode = "off" | "immersive" | "gaze";
+type Mode = "off" | "immersive";
 type Kind = "camera" | "gyro";
 type Status = "idle" | "loading" | "ready" | "denied" | "error" | "insecure";
 
@@ -343,10 +342,6 @@ export function GestureControl({ lang }: { lang: Locale }) {
 
   if (!mounted) return null;
 
-  if (mode === "gaze") {
-    return <GazeScroll lang={lang} onClose={stopAll} />;
-  }
-
   const cameraStatusText =
     status === "insecure"
       ? es
@@ -381,19 +376,6 @@ export function GestureControl({ lang }: { lang: Locale }) {
               {t.experimental}
             </span>
           </button>
-          {!coarse && (
-            <button
-              type="button"
-              onClick={() => setMode("gaze")}
-              className="glass flex items-center gap-2 rounded-full px-3 py-2 text-xs text-fg-muted transition-colors hover:text-fg"
-            >
-              <Eye size={14} className="text-coral" />
-              {es ? "Control por mirada" : "Gaze control"}
-              <span className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[0.55rem] uppercase tracking-wider text-fg-dim">
-                {t.experimental}
-              </span>
-            </button>
-          )}
         </>
       )}
 
