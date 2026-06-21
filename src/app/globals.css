@@ -162,6 +162,38 @@ body {
   );
 }
 
+/* Border beam — a coral light travelling around a card's border */
+@property --beam-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.beam-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0deg,
+    var(--color-coral) 50deg,
+    var(--color-coral-bright) 70deg,
+    transparent 120deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: beamSpin 4.5s linear infinite;
+  pointer-events: none;
+}
+@keyframes beamSpin {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
 /* Honor user motion preferences globally as a safety net */
 @media (prefers-reduced-motion: reduce) {
   html {

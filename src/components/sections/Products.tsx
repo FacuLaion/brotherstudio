@@ -23,8 +23,9 @@ export default function Products({ lang, dict }: SectionProps) {
                   p.featured ? "border-coral shadow-glow" : "border-line",
                 )}
               >
+                {p.featured && <span aria-hidden className="beam-border" />}
                 {p.featured && (
-                  <span className="mono absolute -top-3 left-7 rounded-full bg-coral px-3 py-1 text-[0.65rem] uppercase tracking-wider text-bg">
+                  <span className="mono absolute -top-3 left-7 z-10 rounded-full bg-coral px-3 py-1 text-[0.65rem] uppercase tracking-wider text-bg">
                     {dict.products.popular}
                   </span>
                 )}
