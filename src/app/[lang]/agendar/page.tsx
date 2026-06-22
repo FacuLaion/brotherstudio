@@ -31,7 +31,7 @@ export default async function Agendar({ params }: { params: Promise<{ lang: stri
             <p className="mx-auto mt-4 max-w-xl text-lg text-fg-muted">{dict.contact.sub}</p>
           </div>
           <div className="mt-12 overflow-hidden rounded-2xl border border-line bg-surface">
-            <CalendlyInline />
+            <CalendlyInline lang={lang} />
           </div>
         </div>
       </main>

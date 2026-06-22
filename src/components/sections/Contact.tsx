@@ -2,9 +2,13 @@ import { ArrowRight, CalendarClock } from "lucide-react";
 import type { SectionProps } from "@/components/types";
 import { Kicker } from "@/components/ui/SectionHeading";
 import { Aurora } from "@/components/ui/Aurora";
+import { WhatsappIcon } from "@/components/ui/SocialIcons";
 import { siteConfig } from "@/content/site";
+import { whatsappLink } from "@/lib/utils";
 
 export default function Contact({ lang, dict }: SectionProps) {
+  const waHref = whatsappLink(lang);
+
   return (
     <section id="contacto" className="relative px-6 py-28 md:px-10 md:py-40">
       <Aurora />
@@ -29,6 +33,15 @@ export default function Contact({ lang, dict }: SectionProps) {
                 <CalendarClock size={17} />
                 {dict.contact.cta}
                 <ArrowRight size={16} />
+              </a>
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-line px-7 py-3.5 text-sm font-medium text-fg transition-all duration-300 hover:border-coral hover:text-coral"
+              >
+                <WhatsappIcon size={17} />
+                {dict.contact.whatsapp}
               </a>
               <p className="text-sm text-fg-muted">
                 {dict.contact.or}{" "}

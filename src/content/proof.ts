@@ -59,8 +59,8 @@ export const processSteps: ProcessStep[] = [
     index: 1,
     title: { es: "Llamada de diagnóstico", en: "Discovery call" },
     description: {
-      es: "30 minutos para entender tu negocio y elegir el producto correcto.",
-      en: "30 minutes to understand your business and pick the right product.",
+      es: "15 minutos para entender tu negocio y elegir el producto correcto.",
+      en: "15 minutes to understand your business and pick the right product.",
     },
   },
   {

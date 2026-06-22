@@ -19,7 +19,7 @@ function ensureCalendly(): Promise<void> {
   if (window.Calendly) return Promise.resolve();
   if (loadPromise) return loadPromise;
 
-  loadPromise = new Promise<void>((resolve) => {
+  loadPromise = new Promise<void>((resolve, reject) => {
     if (!document.querySelector('link[href*="calendly.com/assets/external/widget.css"]')) {
       const css = document.createElement("link");
       css.rel = "stylesheet";
@@ -30,6 +30,11 @@ function ensureCalendly(): Promise<void> {
     script.src = "https://assets.calendly.com/assets/external/widget.js";
     script.async = true;
     script.onload = () => resolve();
+    // Blocked by an ad/consent blocker or offline → let callers fall back gracefully.
+    script.onerror = () => {
+      loadPromise = null;
+      reject(new Error("Calendly widget failed to load"));
+    };
     document.body.appendChild(script);
   });
   return loadPromise;
@@ -58,10 +63,19 @@ export async function openCalendly(opts: CalendlyOptions = {}) {
   });
 }
 
-/** Mount the inline Calendly embed inside the given element (used on /agendar). */
-export async function initInlineCalendly(parent: HTMLElement) {
-  await ensureCalendly();
-  if (!window.Calendly) return;
+/**
+ * Mount the inline Calendly embed inside the given element (used on /agendar).
+ * Returns `true` once the widget mounts, `false` if Calendly is unreachable
+ * (blocked by a consent/ad blocker, offline, …) so the caller can show a fallback.
+ */
+export async function initInlineCalendly(parent: HTMLElement): Promise<boolean> {
+  try {
+    await ensureCalendly();
+  } catch {
+    return false;
+  }
+  if (!window.Calendly) return false;
   parent.innerHTML = "";
   window.Calendly.initInlineWidget({ url: siteConfig.calendlyUrl, parentElement: parent });
+  return true;
 }

@@ -9,7 +9,7 @@ export const siteConfig = {
 
   // --- PLACEHOLDERS: replace with real values ---
   email: "hola@brotherstudio.pro",
-  whatsapp: "", // e.g. "+54 9 11 0000 0000"
+  whatsapp: "+54 9 11 3580 8601", // contact number for site enquiries
   /** Calendly event URL. Create a custom question on the event to receive the product name. */
   calendlyUrl: "https://calendly.com/brotherstudio/15min",
   social: {

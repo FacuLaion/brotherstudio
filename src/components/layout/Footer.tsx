@@ -1,8 +1,9 @@
 import type { SectionProps } from "@/components/types";
 import { siteConfig } from "@/content/site";
 import { LanguageSwitcher } from "./LanguageSwitcher";
-import { GithubIcon, InstagramIcon, LinkedinIcon } from "@/components/ui/SocialIcons";
+import { GithubIcon, InstagramIcon, LinkedinIcon, WhatsappIcon } from "@/components/ui/SocialIcons";
 import { DecryptText } from "@/components/motion/DecryptText";
+import { whatsappLink } from "@/lib/utils";
 
 export default function Footer({ lang, dict }: SectionProps) {
   const year = 2026;
@@ -24,6 +25,9 @@ export default function Footer({ lang, dict }: SectionProps) {
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-fg-muted">{dict.footer.tagline}</p>
           <div className="mt-6 flex items-center gap-4 text-fg-dim">
+            <a href={whatsappLink(lang)} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="transition-colors hover:text-coral">
+              <WhatsappIcon size={18} />
+            </a>
             <a href={siteConfig.social.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="transition-colors hover:text-coral">
               <InstagramIcon size={18} />
             </a>

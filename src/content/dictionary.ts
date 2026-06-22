@@ -60,6 +60,7 @@ export interface Dictionary {
     cta: string;
     or: string;
     email: string;
+    whatsapp: string;
   };
   footer: {
     tagline: string;
@@ -137,7 +138,7 @@ const es: Dictionary = {
     includes: "Incluye",
     ctaBuyPrefix: "Quiero",
     ctaCall: "Agendar llamada",
-    note: "Precios de referencia. Ajustamos el alcance a tu caso en una llamada de 30 min sin compromiso.",
+    note: "Precios de referencia. Ajustamos el alcance a tu caso en una llamada de 15 min sin compromiso.",
   },
   process: {
     kicker: "Cómo funciona",
@@ -153,10 +154,11 @@ const es: Dictionary = {
   contact: {
     kicker: "Contacto",
     title: "¿En qué te podemos ayudar?",
-    sub: "Agendá una llamada de 30 minutos y resolvemos tus dudas sobre el producto, el alcance y los tiempos.",
+    sub: "Agendá una llamada de 15 minutos y resolvemos tus dudas sobre el producto, el alcance y los tiempos.",
     cta: "Agendar mi llamada",
     or: "o escribinos a",
     email: "Escribinos",
+    whatsapp: "Consultas por WhatsApp",
   },
   footer: {
     tagline: "Desarrollo web inmersivo, IA y automatización para empresas.",
@@ -234,7 +236,7 @@ const en: Dictionary = {
     includes: "Includes",
     ctaBuyPrefix: "I want",
     ctaCall: "Book a call",
-    note: "Reference pricing. We scope your exact case in a free 30-min call.",
+    note: "Reference pricing. We scope your exact case in a free 15-min call.",
   },
   process: {
     kicker: "How it works",
@@ -250,10 +252,11 @@ const en: Dictionary = {
   contact: {
     kicker: "Contact",
     title: "How can we help you?",
-    sub: "Book a 30-minute call and we'll clear up your questions about the product, scope and timelines.",
+    sub: "Book a 15-minute call and we'll clear up your questions about the product, scope and timelines.",
     cta: "Book my call",
     or: "or email us at",
     email: "Email us",
+    whatsapp: "Enquiries on WhatsApp",
   },
   footer: {
     tagline: "Immersive web development, AI and automation for companies.",

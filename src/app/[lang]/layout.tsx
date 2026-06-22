@@ -12,6 +12,7 @@ import { ParticleField } from "@/components/motion/ParticleField";
 import { SectionNav } from "@/components/motion/SectionNav";
 import { Preloader } from "@/components/webgl/Preloader";
 import { GestureControl } from "@/components/gesture/GestureControl";
+import { WhatsappFab } from "@/components/layout/WhatsappFab";
 import "../globals.css";
 
 type LangParams = { params: Promise<{ lang: string }> };
@@ -63,6 +64,8 @@ export default async function LangLayout({
   const { lang } = await params;
   if (!isLocale(lang)) notFound();
 
+  const dict = getDictionary(lang);
+
   return (
     <html lang={lang} className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-dvh antialiased">
@@ -75,6 +78,7 @@ export default async function LangLayout({
         <SectionNav />
         <GestureControl lang={lang} />
         {children}
+        <WhatsappFab lang={lang} label={dict.contact.whatsapp} />
       </body>
     </html>
   );
