@@ -7,6 +7,8 @@ import { siteConfig } from "@/content/site";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { Reveals } from "@/components/motion/Reveals";
 import { Cursor } from "@/components/motion/Cursor";
+import { CursorParticles } from "@/components/motion/CursorParticles";
+import { ParticleField } from "@/components/motion/ParticleField";
 import { SectionNav } from "@/components/motion/SectionNav";
 import { Preloader } from "@/components/webgl/Preloader";
 import { GestureControl } from "@/components/gesture/GestureControl";
@@ -66,8 +68,10 @@ export default async function LangLayout({
       <body className="min-h-dvh antialiased">
         <Preloader />
         <SmoothScroll />
+        <ParticleField />
         <Reveals />
         <Cursor />
+        <CursorParticles />
         <SectionNav />
         <GestureControl lang={lang} />
         {children}
