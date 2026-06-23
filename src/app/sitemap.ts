@@ -3,7 +3,7 @@ import { siteConfig } from "@/content/site";
 import { locales } from "@/lib/i18n";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ["", "/agendar"];
+  const routes = ["", "/agendar", "/precios"];
   const now = new Date();
   const entries: MetadataRoute.Sitemap = [];
   for (const lang of locales) {

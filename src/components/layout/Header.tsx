@@ -24,6 +24,7 @@ export default function Header({ lang, dict }: SectionProps) {
     { href: "#servicios", label: dict.nav.services },
     { href: "#proyectos", label: dict.nav.work },
     { href: "#productos", label: dict.nav.products },
+    { href: `/${lang}/precios`, label: dict.nav.pricing },
     { href: "#confianza", label: dict.nav.proof },
     { href: "#contacto", label: dict.nav.contact },
   ];

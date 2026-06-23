@@ -14,6 +14,13 @@ export interface Dictionary {
     proof: string;
     contact: string;
     bookCall: string;
+    pricing: string;
+  };
+  pricing: {
+    kicker: string;
+    title: string;
+    subtitle: string;
+    back: string;
   };
   gesture: {
     enable: string;
@@ -87,6 +94,14 @@ const es: Dictionary = {
     proof: "Confianza",
     contact: "Contacto",
     bookCall: "Agendar llamada",
+    pricing: "Precios",
+  },
+  pricing: {
+    kicker: "Precios",
+    title: "Precios claros para resultados reales",
+    subtitle:
+      "Productos con precio cerrado, listos en días. Elegí el que se ajusta a tu negocio y lo personalizamos a tu caso.",
+    back: "Volver",
   },
   gesture: {
     enable: "Modo inmersivo",
@@ -185,6 +200,14 @@ const en: Dictionary = {
     proof: "Trust",
     contact: "Contact",
     bookCall: "Book a call",
+    pricing: "Pricing",
+  },
+  pricing: {
+    kicker: "Pricing",
+    title: "Clear pricing for real results",
+    subtitle:
+      "Fixed-price products, live in days. Pick the one that fits your business and we tailor it to your case.",
+    back: "Back",
   },
   gesture: {
     enable: "Immersive mode",
