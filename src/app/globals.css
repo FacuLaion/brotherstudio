@@ -294,6 +294,21 @@ body {
   }
 }
 
+/* Coral light-ring (GlowRing) — slow breathing behind a section */
+.glow-ring {
+  animation: glowRingBreathe 7s ease-in-out infinite alternate;
+}
+@keyframes glowRingBreathe {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.95;
+    transform: scale(1.04);
+  }
+}
+
 /* Honor user motion preferences globally as a safety net */
 @media (prefers-reduced-motion: reduce) {
   html {

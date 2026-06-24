@@ -1,6 +1,7 @@
 import { Check, Clock, ArrowRight } from "lucide-react";
 import type { SectionProps } from "@/components/types";
 import { Aurora } from "@/components/ui/Aurora";
+import { GlowRing } from "@/components/ui/GlowRing";
 import { BookCall } from "@/components/calendly/BookCall";
 import { products } from "@/content/products";
 import { tr } from "@/content/types";
@@ -14,10 +15,11 @@ import { cn, formatPrice } from "@/lib/utils";
  */
 export function PricingGlassy({ lang, dict }: SectionProps) {
   return (
-    <section className="relative w-full overflow-hidden px-6 py-24 md:px-10 md:py-32">
-      <Aurora />
+    <section className="relative isolate w-full overflow-hidden px-6 py-24 md:px-10 md:py-32">
+      <Aurora className="z-0" />
+      <GlowRing className="z-0 top-[58%]" />
 
-      <div className="mx-auto w-full max-w-7xl">
+      <div className="relative z-10 mx-auto w-full max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <span className="mono text-xs uppercase tracking-[0.2em] text-coral">
             {dict.pricing.kicker}
