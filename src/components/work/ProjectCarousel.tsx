@@ -36,16 +36,34 @@ export function ProjectCarousel({ project, lang }: { project: Project; lang: Loc
   const total = slides.length;
 
   const [current, setCurrent] = useState(0);
+  const [animate, setAnimate] = useState(true);
   const regionRef = useRef<HTMLDivElement>(null);
 
-  // Clamped navigation (no wrap → no ugly rewind animation across the whole strip).
+  // Infinite navigation: stepping past either end wraps around. The wrap frame is
+  // an instant cut (animation off) so it loops cleanly instead of scrubbing the
+  // whole strip backwards; normal steps stay animated.
   const go = useCallback(
-    (dir: number) => setCurrent((c) => Math.max(0, Math.min(total - 1, c + dir))),
+    (dir: number) =>
+      setCurrent((c) => {
+        const nx = c + dir;
+        if (nx < 0 || nx >= total) {
+          setAnimate(false);
+          return (nx + total) % total;
+        }
+        return nx;
+      }),
     [total],
   );
   const next = useCallback(() => go(1), [go]);
   const prev = useCallback(() => go(-1), [go]);
-  const goTo = useCallback((i: number) => setCurrent(Math.max(0, Math.min(total - 1, i))), [total]);
+  const goTo = useCallback((i: number) => setCurrent(((i % total) + total) % total), [total]);
+
+  // Re-enable the slide animation on the frame after a wrap snap.
+  useEffect(() => {
+    if (animate) return;
+    const id = requestAnimationFrame(() => setAnimate(true));
+    return () => cancelAnimationFrame(id);
+  }, [animate]);
 
   // Register with the gesture store. next/prev are stable (functional updates),
   // so the stored refs stay valid for the component's lifetime.
@@ -104,11 +122,17 @@ export function ProjectCarousel({ project, lang }: { project: Project; lang: Loc
     >
       {/* sliding track */}
       <div
-        className="absolute inset-0 flex h-full transition-transform duration-500 ease-out motion-reduce:transition-none"
-        style={{ transform: `translateX(-${current * 100}%)` }}
+        className="absolute inset-0 flex h-full transition-transform duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+        style={{
+          transform: `translateX(-${current * 100}%)`,
+          ...(animate ? null : { transition: "none" }),
+        }}
       >
         {slides.map((s, i) => {
-          const windowed = Math.abs(i - current) <= 1; // only mount active ± 1
+          // circular window: mount active ± 1 INCLUDING the wrap neighbours, so the
+          // loop boundary is preloaded and never flashes the gradient fallback.
+          const gap = Math.min(Math.abs(i - current), total - Math.abs(i - current));
+          const windowed = gap <= 1;
           const active = i === current;
           return (
             <div
@@ -163,18 +187,16 @@ export function ProjectCarousel({ project, lang }: { project: Project; lang: Loc
       <button
         type="button"
         onClick={prev}
-        disabled={current === 0}
         aria-label={t.prev}
-        className="glass absolute left-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-fg opacity-0 transition-opacity duration-200 hover:border-coral/60 focus-visible:opacity-100 group-hover/car:opacity-100 disabled:cursor-not-allowed disabled:opacity-0 pointer-coarse:opacity-100 pointer-coarse:disabled:opacity-30"
+        className="glass absolute left-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-fg opacity-0 transition-opacity duration-200 hover:border-coral/60 focus-visible:opacity-100 group-hover/car:opacity-100 pointer-coarse:opacity-100"
       >
         <ChevronLeft size={18} />
       </button>
       <button
         type="button"
         onClick={next}
-        disabled={current === total - 1}
         aria-label={t.next}
-        className="glass absolute right-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-fg opacity-0 transition-opacity duration-200 hover:border-coral/60 focus-visible:opacity-100 group-hover/car:opacity-100 disabled:cursor-not-allowed disabled:opacity-0 pointer-coarse:opacity-100 pointer-coarse:disabled:opacity-30"
+        className="glass absolute right-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-fg opacity-0 transition-opacity duration-200 hover:border-coral/60 focus-visible:opacity-100 group-hover/car:opacity-100 pointer-coarse:opacity-100"
       >
         <ChevronRight size={18} />
       </button>

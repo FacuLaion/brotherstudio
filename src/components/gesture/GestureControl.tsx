@@ -24,6 +24,30 @@ type LM = { x: number; y: number; z?: number };
 const dist = (a: LM, b: LM) => Math.hypot(a.x - b.x, a.y - b.y);
 const clamp = (v: number, m = 1.3) => Math.max(-m, Math.min(m, v));
 
+// A finger is "curled" when its tip collapses back toward its knuckle (relative
+// to palm size, so it's scale-invariant).
+const fingerCurled = (tip: LM, mcp: LM, palm: number) => dist(tip, mcp) < 0.5 * palm;
+
+/**
+ * Closed fist: middle, ring AND pinky all curled into the palm. A fist also puts
+ * the thumb near the index, so it would otherwise read as a pinch — we use this
+ * to reject it so only a real pinch (open hand, thumb+index together) engages.
+ */
+function isFist(lm: LM[], palm: number) {
+  const mid = lm[12];
+  const ring = lm[16];
+  const pinky = lm[20];
+  const midMcp = lm[9];
+  const ringMcp = lm[13];
+  const pinkyMcp = lm[17];
+  if (!mid || !ring || !pinky || !midMcp || !ringMcp || !pinkyMcp) return false;
+  return (
+    fingerCurled(mid, midMcp, palm) &&
+    fingerCurled(ring, ringMcp, palm) &&
+    fingerCurled(pinky, pinkyMcp, palm)
+  );
+}
+
 // MediaPipe logs benign INFO/WARN lines via console.error; Next's dev overlay
 // shows those as errors. Route the known-noisy ones to console.debug instead.
 let consolePatched = false;
@@ -85,6 +109,9 @@ export function GestureControl({ lang }: { lang: Locale }) {
   const carouselTargetId = useRef<string | null>(null);
   const xFilter = useRef<OneEuroFilter | null>(null);
   const lastStepX = useRef(0);
+  // One-Euro smoothing for the hand cursor itself (kills jitter, stays responsive)
+  const pointerXFilter = useRef<OneEuroFilter | null>(null);
+  const pointerYFilter = useRef<OneEuroFilter | null>(null);
   const headEMA = useRef({ x: 0, y: 0 });
   const faceDetectedRef = useRef(false);
   const gyroBase = useRef<{ beta: number; gamma: number } | null>(null);
@@ -179,6 +206,8 @@ export function GestureControl({ lang }: { lang: Locale }) {
       releaseCount.current = 0;
       yFilter.current?.reset();
       xFilter.current?.reset();
+      pointerXFilter.current?.reset();
+      pointerYFilter.current?.reset();
       setPointer(0, 0, false); // hide cursor; the card's focus fades after the grace period
       setArmed(false);
       return;
@@ -190,23 +219,28 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const midMcp = lm[9];
     if (!thumb || !index || !wrist || !midMcp) return;
 
-    // The hand cursor always tracks the index fingertip.
-    setPointer(index.x, index.y, true);
-
     const palm = dist(wrist, midMcp) || 1e-4;
+
+    // The hand cursor tracks the index fingertip, One-Euro smoothed → no jitter.
+    const psx = (pointerXFilter.current ??= new OneEuroFilter(1.2, 0.6)).filter(index.x, now / 1000);
+    const psy = (pointerYFilter.current ??= new OneEuroFilter(1.2, 0.6)).filter(index.y, now / 1000);
+    setPointer(psx, psy, true);
 
     // Scale-invariant pinch ratio, EMA-smoothed to stop threshold flicker.
     const rawRatio = dist(thumb, index) / palm;
     ratioEMA.current = ratioEMA.current * 0.5 + rawRatio * 0.5;
     const ratio = ratioEMA.current;
 
+    // A closed fist also brings thumb+index together; never treat it as a pinch.
+    const fist = isFist(lm, palm);
+
     // ---- gesture state machine ----
-    // The SAME pinch (thumb + index) does two things depending on where it starts:
+    // The SAME pinch (thumb + index, open hand) does two things by where it starts:
     //  • over a focused project image → grabs that carousel, drag ←/→ steps slides;
     //  • anywhere else → scrolls the page ↑/↓ (the original gesture, unchanged).
     if (gestureRef.current === "none") {
-      // Engage only after a few clearly-pinched frames (kills false positives).
-      engageCount.current = ratio < 0.3 ? engageCount.current + 1 : 0;
+      // Engage only after a few clearly-pinched frames; a fist never qualifies.
+      engageCount.current = ratio < 0.3 && !fist ? engageCount.current + 1 : 0;
       if (engageCount.current >= 3) {
         gestureRef.current = "pinch";
         pinchOn.current = true;
@@ -246,8 +280,9 @@ export function GestureControl({ lang }: { lang: Locale }) {
     if (pinchModeRef.current === "carousel") {
       const filter = (xFilter.current ??= new OneEuroFilter(1.0, 0.7));
       const x = filter.filter(index.x, now / 1000);
-      // Step only while fingers stay clearly together (no jump on a loose grip).
-      if (ratio < 0.42) {
+      // Step only while the pinch stays firm; the loose 0.33–0.48 zone is a buffer
+      // so opening the hand to release never fires a stray step ("moves on release").
+      if (!fist && ratio < 0.33) {
         // Mirror: screen X = 1 − camera X, so a rightward *screen* drag is −dx.
         const screenDx = -(x - lastStepX.current);
         if (Math.abs(screenDx) > 0.12) {
@@ -264,7 +299,7 @@ export function GestureControl({ lang }: { lang: Locale }) {
     // pinchModeRef.current === "scroll" — original vertical drag.
     const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
     const y = filter.filter(index.y, now / 1000);
-    if (ratio < 0.42) {
+    if (!fist && ratio < 0.42) {
       let dy = y - lastY.current; // down positive
       dy = Math.max(-0.045, Math.min(0.045, dy)); // clamp → no spike from a glitch frame
       if (Math.abs(dy) > 0.0015) {
@@ -383,6 +418,8 @@ export function GestureControl({ lang }: { lang: Locale }) {
     pinchModeRef.current = "scroll";
     carouselTargetId.current = null;
     xFilter.current?.reset();
+    pointerXFilter.current?.reset();
+    pointerYFilter.current?.reset();
     setArmed(false);
     resetGallery();
     setStatus("idle");
