@@ -5,7 +5,7 @@ import { Hand, X, Loader2, Smartphone } from "lucide-react";
 import { getDictionary } from "@/content/dictionary";
 import { scrollByPixels } from "@/lib/scroll";
 import { setHead, setHeadActive } from "@/lib/immersive";
-import { setPointer, setArmed, emitSwipe, resetGallery } from "@/lib/gallery";
+import { setPointer, setArmed, emitSwipe, resetGallery, getFocusedId } from "@/lib/gallery";
 import { OneEuroFilter } from "@/lib/oneEuro";
 import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -23,36 +23,6 @@ type Status = "idle" | "loading" | "ready" | "denied" | "error" | "insecure";
 type LM = { x: number; y: number; z?: number };
 const dist = (a: LM, b: LM) => Math.hypot(a.x - b.x, a.y - b.y);
 const clamp = (v: number, m = 1.3) => Math.max(-m, Math.min(m, v));
-
-// --- finger-pose primitives for the two-finger (index + middle) swipe gesture ---
-// Robust to hand orientation: a finger is "extended" when its tip is clearly
-// farther from the wrist than its PIP joint AND far from its own knuckle;
-// "curled" when the tip collapses back toward its knuckle. All thresholds are
-// relative to palm size (scale-invariant).
-const fingerExtended = (tip: LM, pip: LM, mcp: LM, wrist: LM, palm: number) =>
-  dist(tip, wrist) > 1.15 * dist(pip, wrist) && dist(tip, mcp) > 0.6 * palm;
-const fingerCurled = (tip: LM, mcp: LM, palm: number) => dist(tip, mcp) < 0.5 * palm;
-
-/** Index + middle extended and TOGETHER, ring + pinky curled, and not pinching. */
-function isTwoFinger(lm: LM[], palm: number, ratio: number) {
-  const idxTip = lm[8],
-    idxPip = lm[6],
-    idxMcp = lm[5];
-  const midTip = lm[12],
-    midPip = lm[10],
-    midMcp = lm[9];
-  const wrist = lm[0];
-  if (!idxTip || !idxPip || !idxMcp || !midTip || !midPip || !midMcp || !wrist) return false;
-  if (!lm[16] || !lm[13] || !lm[20] || !lm[17]) return false;
-  return (
-    fingerExtended(idxTip, idxPip, idxMcp, wrist, palm) &&
-    fingerExtended(midTip, midPip, midMcp, wrist, palm) &&
-    fingerCurled(lm[16], lm[13], palm) && // ring folded
-    fingerCurled(lm[20], lm[17], palm) && // pinky folded
-    dist(idxTip, midTip) < 0.55 * palm && // tips together (separates from an open "V")
-    ratio > 0.45 // thumb/index not pinched (separates from the scroll gesture)
-  );
-}
 
 // MediaPipe logs benign INFO/WARN lines via console.error; Next's dev overlay
 // shows those as errors. Route the known-noisy ones to console.debug instead.
@@ -109,16 +79,12 @@ export function GestureControl({ lang }: { lang: Locale }) {
   const lastY = useRef(0);
   const ratioEMA = useRef(1);
   const yFilter = useRef<OneEuroFilter | null>(null);
-  // two-finger swipe state
-  const gestureRef = useRef<"none" | "pinch" | "swipe">("none");
+  // pinch-over-image → horizontal carousel control
+  const gestureRef = useRef<"none" | "pinch">("none");
+  const pinchModeRef = useRef<"scroll" | "carousel">("scroll");
+  const carouselTargetId = useRef<string | null>(null);
   const xFilter = useRef<OneEuroFilter | null>(null);
-  const swipeEngage = useRef(0);
-  const swipeRelease = useRef(0);
-  const lastXFilt = useRef(0);
-  const lastXTime = useRef(0);
-  const xAtEnter = useRef(0);
-  const armedReady = useRef(false);
-  const lastSwipeAt = useRef(0);
+  const lastStepX = useRef(0);
   const headEMA = useRef({ x: 0, y: 0 });
   const faceDetectedRef = useRef(false);
   const gyroBase = useRef<{ beta: number; gamma: number } | null>(null);
@@ -207,10 +173,10 @@ export function GestureControl({ lang }: { lang: Locale }) {
         setPinching(false);
       }
       gestureRef.current = "none";
+      pinchModeRef.current = "scroll";
+      carouselTargetId.current = null;
       engageCount.current = 0;
       releaseCount.current = 0;
-      swipeEngage.current = 0;
-      swipeRelease.current = 0;
       yFilter.current?.reset();
       xFilter.current?.reset();
       setPointer(0, 0, false); // hide cursor; the card's focus fades after the grace period
@@ -224,7 +190,7 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const midMcp = lm[9];
     if (!thumb || !index || !wrist || !midMcp) return;
 
-    // The hand cursor always tracks the index fingertip, in every state.
+    // The hand cursor always tracks the index fingertip.
     setPointer(index.x, index.y, true);
 
     const palm = dist(wrist, midMcp) || 1e-4;
@@ -234,93 +200,79 @@ export function GestureControl({ lang }: { lang: Locale }) {
     ratioEMA.current = ratioEMA.current * 0.5 + rawRatio * 0.5;
     const ratio = ratioEMA.current;
 
-    const twoFinger = isTwoFinger(lm, palm, ratio);
-
-    // ---- gesture state machine: pinch (vertical scroll) and swipe (slide) are
-    //      mutually exclusive, so they can never fire on the same frame. ----
+    // ---- gesture state machine ----
+    // The SAME pinch (thumb + index) does two things depending on where it starts:
+    //  • over a focused project image → grabs that carousel, drag ←/→ steps slides;
+    //  • anywhere else → scrolls the page ↑/↓ (the original gesture, unchanged).
     if (gestureRef.current === "none") {
-      // Both require a few stable frames; pinch wins ties.
+      // Engage only after a few clearly-pinched frames (kills false positives).
       engageCount.current = ratio < 0.3 ? engageCount.current + 1 : 0;
-      swipeEngage.current = twoFinger ? swipeEngage.current + 1 : 0;
       if (engageCount.current >= 3) {
         gestureRef.current = "pinch";
         pinchOn.current = true;
         setPinching(true);
-        const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
-        lastY.current = filter.filter(index.y, now / 1000); // anchor — no scroll on engage
         releaseCount.current = 0;
-        swipeEngage.current = 0;
-      } else if (swipeEngage.current >= 3) {
-        gestureRef.current = "swipe";
-        setArmed(true);
-        const filter = (xFilter.current ??= new OneEuroFilter(1.2, 1.0));
-        const x = filter.filter(index.x, now / 1000);
-        lastXFilt.current = x;
-        lastXTime.current = now;
-        xAtEnter.current = x;
-        armedReady.current = true;
-        swipeRelease.current = 0;
-      }
-      return;
-    }
-
-    if (gestureRef.current === "pinch") {
-      const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
-      const y = filter.filter(index.y, now / 1000);
-      // Release after a couple of clearly-open frames → stop; page stays put.
-      releaseCount.current = ratio > 0.48 ? releaseCount.current + 1 : 0;
-      if (releaseCount.current >= 2) {
-        gestureRef.current = "none";
-        pinchOn.current = false;
-        setPinching(false);
-        engageCount.current = 0;
-        lastY.current = y;
-        return;
-      }
-      // Drag only while fingers stay clearly together (no abrupt jump on release).
-      if (ratio < 0.42) {
-        let dy = y - lastY.current; // down positive
-        dy = Math.max(-0.045, Math.min(0.045, dy)); // clamp → no spike from a glitch frame
-        if (Math.abs(dy) > 0.0015) {
-          // Drag hand UP → page scrolls DOWN (touch convention).
-          scrollByPixels(-dy * window.innerHeight * 3);
+        const target = getFocusedId();
+        if (target) {
+          // grabbed an image → horizontal carousel mode
+          pinchModeRef.current = "carousel";
+          carouselTargetId.current = target;
+          const filter = (xFilter.current ??= new OneEuroFilter(1.0, 0.7));
+          lastStepX.current = filter.filter(index.x, now / 1000); // anchor
+          setArmed(true);
+        } else {
+          // empty space → vertical page scroll
+          pinchModeRef.current = "scroll";
+          const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
+          lastY.current = filter.filter(index.y, now / 1000); // anchor — no scroll on engage
         }
       }
-      lastY.current = y;
       return;
     }
 
-    // gestureRef.current === "swipe"
-    const filter = (xFilter.current ??= new OneEuroFilter(1.2, 1.0));
-    const x = filter.filter(index.x, now / 1000);
-    // Release when the two-finger pose is dropped for a few frames.
-    swipeRelease.current = twoFinger ? 0 : swipeRelease.current + 1;
-    if (swipeRelease.current >= 3) {
+    // gestureRef.current === "pinch" — release after a couple of clearly-open frames.
+    releaseCount.current = ratio > 0.48 ? releaseCount.current + 1 : 0;
+    if (releaseCount.current >= 2) {
       gestureRef.current = "none";
+      pinchOn.current = false;
+      setPinching(false);
+      engageCount.current = 0;
+      pinchModeRef.current = "scroll";
+      carouselTargetId.current = null;
       setArmed(false);
-      swipeEngage.current = 0;
-      lastXFilt.current = x;
-      lastXTime.current = now;
       return;
     }
-    // Velocity-based flick (camera-space fraction of width per second).
-    const dt = Math.max(1e-3, (now - lastXTime.current) / 1000);
-    const vx = (x - lastXFilt.current) / dt;
-    lastXFilt.current = x;
-    lastXTime.current = now;
-    // Camera preview is mirrored (screenX = 1 − camX), so a rightward *screen*
-    // flick is −vx. screenDir +1 → next slide, −1 → prev.
-    const screenVx = -vx;
-    const disp = Math.abs(x - xAtEnter.current);
-    if (armedReady.current && Math.abs(screenVx) > 1.6 && disp > 0.12) {
-      emitSwipe(screenVx > 0 ? 1 : -1);
-      armedReady.current = false;
-      lastSwipeAt.current = now;
-    } else if (!armedReady.current && Math.abs(vx) < 0.4 && now - lastSwipeAt.current > 600) {
-      // Re-arm once the hand settles AND the cooldown elapsed → one flick = one slide.
-      armedReady.current = true;
-      xAtEnter.current = x;
+
+    if (pinchModeRef.current === "carousel") {
+      const filter = (xFilter.current ??= new OneEuroFilter(1.0, 0.7));
+      const x = filter.filter(index.x, now / 1000);
+      // Step only while fingers stay clearly together (no jump on a loose grip).
+      if (ratio < 0.42) {
+        // Mirror: screen X = 1 − camera X, so a rightward *screen* drag is −dx.
+        const screenDx = -(x - lastStepX.current);
+        if (Math.abs(screenDx) > 0.12) {
+          // One slide per ~12% of frame dragged; re-anchor so more drag steps again.
+          emitSwipe(screenDx > 0 ? 1 : -1, carouselTargetId.current); // +1 → next, −1 → prev
+          lastStepX.current = x;
+        }
+      } else {
+        lastStepX.current = x; // re-anchor in the loose zone → no accumulated jump
+      }
+      return;
     }
+
+    // pinchModeRef.current === "scroll" — original vertical drag.
+    const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
+    const y = filter.filter(index.y, now / 1000);
+    if (ratio < 0.42) {
+      let dy = y - lastY.current; // down positive
+      dy = Math.max(-0.045, Math.min(0.045, dy)); // clamp → no spike from a glitch frame
+      if (Math.abs(dy) > 0.0015) {
+        // Drag hand UP → page scrolls DOWN (touch convention).
+        scrollByPixels(-dy * window.innerHeight * 3);
+      }
+    }
+    lastY.current = y;
   }, []);
 
   const loop = useCallback(() => {
@@ -428,9 +380,8 @@ export function GestureControl({ lang }: { lang: Locale }) {
     yFilter.current?.reset();
     // gesture-gallery teardown — no ghost cursor / stuck focus when the camera stops
     gestureRef.current = "none";
-    swipeEngage.current = 0;
-    swipeRelease.current = 0;
-    armedReady.current = false;
+    pinchModeRef.current = "scroll";
+    carouselTargetId.current = null;
     xFilter.current?.reset();
     setArmed(false);
     resetGallery();

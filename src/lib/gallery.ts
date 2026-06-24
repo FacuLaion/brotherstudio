@@ -114,6 +114,11 @@ export function getCard(id: string | null): Card | undefined {
   return id ? cards.get(id) : undefined;
 }
 
+/** The project currently under the hand pointer (used to grab its carousel). */
+export function getFocusedId() {
+  return focusedId;
+}
+
 // ---------- focus ----------
 function within(px: number, py: number, r: DOMRect, margin: number) {
   // margin > 0 grows the rect (outset); margin < 0 shrinks it (inset)
@@ -215,9 +220,9 @@ export function setArmed(on: boolean) {
  * Emit one slide step on the focused carousel.
  * @param screenDir  +1 = pointer flicked right on screen → next; -1 → prev.
  */
-export function emitSwipe(screenDir: -1 | 1) {
-  if (!focusedId) return;
-  bump({ swipeId: focusedId, swipeDir: screenDir, swipeSeq: snapshot.swipeSeq + 1 });
+export function emitSwipe(screenDir: -1 | 1, targetId: string | null = focusedId) {
+  if (!targetId) return;
+  bump({ swipeId: targetId, swipeDir: screenDir, swipeSeq: snapshot.swipeSeq + 1 });
 }
 
 /** Clear every transient when the camera turns off (called from stopAll). */
