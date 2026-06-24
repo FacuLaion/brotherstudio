@@ -222,8 +222,8 @@ export function GestureControl({ lang }: { lang: Locale }) {
     const palm = dist(wrist, midMcp) || 1e-4;
 
     // The hand cursor tracks the index fingertip, One-Euro smoothed → no jitter.
-    const psx = (pointerXFilter.current ??= new OneEuroFilter(1.2, 0.6)).filter(index.x, now / 1000);
-    const psy = (pointerYFilter.current ??= new OneEuroFilter(1.2, 0.6)).filter(index.y, now / 1000);
+    const psx = (pointerXFilter.current ??= new OneEuroFilter(0.9, 1.1)).filter(index.x, now / 1000);
+    const psy = (pointerYFilter.current ??= new OneEuroFilter(0.9, 1.1)).filter(index.y, now / 1000);
     setPointer(psx, psy, true);
 
     // Scale-invariant pinch ratio, EMA-smoothed to stop threshold flicker.
@@ -233,15 +233,19 @@ export function GestureControl({ lang }: { lang: Locale }) {
 
     // A closed fist also brings thumb+index together; never treat it as a pinch.
     const fist = isFist(lm, palm);
+    // A real pinch keeps the index extended (the thumb reaches its tip). This
+    // rejects pointing / half-closed poses where thumb+index drift close by chance.
+    const indexExtended = dist(index, wrist) > 1.0 * palm;
 
     // ---- gesture state machine ----
     // The SAME pinch (thumb + index, open hand) does two things by where it starts:
     //  • over a focused project image → grabs that carousel, drag ←/→ steps slides;
     //  • anywhere else → scrolls the page ↑/↓ (the original gesture, unchanged).
     if (gestureRef.current === "none") {
-      // Engage only after a few clearly-pinched frames; a fist never qualifies.
-      engageCount.current = ratio < 0.3 && !fist ? engageCount.current + 1 : 0;
-      if (engageCount.current >= 3) {
+      // Engage only after several clearly-pinched frames (firm pinch + open hand +
+      // extended index) → no firing without an intentional gesture.
+      engageCount.current = ratio < 0.28 && !fist && indexExtended ? engageCount.current + 1 : 0;
+      if (engageCount.current >= 4) {
         gestureRef.current = "pinch";
         pinchOn.current = true;
         setPinching(true);
@@ -257,7 +261,7 @@ export function GestureControl({ lang }: { lang: Locale }) {
         } else {
           // empty space → vertical page scroll
           pinchModeRef.current = "scroll";
-          const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
+          const filter = (yFilter.current ??= new OneEuroFilter(0.8, 0.5));
           lastY.current = filter.filter(index.y, now / 1000); // anchor — no scroll on engage
         }
       }
@@ -297,14 +301,15 @@ export function GestureControl({ lang }: { lang: Locale }) {
     }
 
     // pinchModeRef.current === "scroll" — original vertical drag.
-    const filter = (yFilter.current ??= new OneEuroFilter(1.0, 0.7));
+    const filter = (yFilter.current ??= new OneEuroFilter(0.8, 0.5));
     const y = filter.filter(index.y, now / 1000);
     if (!fist && ratio < 0.42) {
       let dy = y - lastY.current; // down positive
-      dy = Math.max(-0.045, Math.min(0.045, dy)); // clamp → no spike from a glitch frame
-      if (Math.abs(dy) > 0.0015) {
-        // Drag hand UP → page scrolls DOWN (touch convention).
-        scrollByPixels(-dy * window.innerHeight * 3);
+      dy = Math.max(-0.04, Math.min(0.04, dy)); // clamp → no spike from a glitch frame
+      if (Math.abs(dy) > 0.002) {
+        // Drag hand UP → page scrolls DOWN (touch convention). Gentler multiplier
+        // + smoother Y filter → less jumpy vertical scroll.
+        scrollByPixels(-dy * window.innerHeight * 2.3);
       }
     }
     lastY.current = y;
