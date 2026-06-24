@@ -12,6 +12,7 @@ import { ParticleField } from "@/components/motion/ParticleField";
 import { SectionNav } from "@/components/motion/SectionNav";
 import { Preloader } from "@/components/webgl/Preloader";
 import { GestureControl } from "@/components/gesture/GestureControl";
+import { HandCursor } from "@/components/gesture/HandCursor";
 import { WhatsappFab } from "@/components/layout/WhatsappFab";
 import "../globals.css";
 
@@ -77,6 +78,7 @@ export default async function LangLayout({
         <CursorParticles />
         <SectionNav />
         <GestureControl lang={lang} />
+        <HandCursor />
         {children}
         <WhatsappFab lang={lang} label={dict.contact.whatsapp} />
       </body>

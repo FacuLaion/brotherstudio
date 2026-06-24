@@ -4,6 +4,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { projects } from "@/content/projects";
 import { tr } from "@/content/types";
 import { TiltCard } from "@/components/motion/TiltCard";
+import { ProjectCarousel } from "@/components/work/ProjectCarousel";
 
 export default function Work({ lang, dict }: SectionProps) {
   return (
@@ -12,27 +13,13 @@ export default function Work({ lang, dict }: SectionProps) {
         <SectionHeading kicker={dict.work.kicker} title={dict.work.title} sub={dict.work.sub} />
 
         <div className="mt-16 grid gap-6 md:grid-cols-2">
-          {projects.map((p, i) => (
+          {projects.map((p) => (
             <TiltCard
               key={p.id}
               data-reveal
               className="group relative overflow-hidden rounded-2xl border border-line bg-surface hover:border-fg-dim"
             >
-              {/* Placeholder visual — becomes the scroll-scrub still in M3 */}
-              <div className="relative aspect-[16/10] overflow-hidden">
-                <div
-                  className="absolute inset-0 transition-transform duration-700 group-hover:scale-105"
-                  style={{
-                    background:
-                      i % 2 === 0
-                        ? "radial-gradient(120% 120% at 0% 0%, rgba(222,73,89,0.35), transparent 55%), linear-gradient(135deg, #16181d, #0a0a0b)"
-                        : "radial-gradient(120% 120% at 100% 0%, rgba(60,92,178,0.35), transparent 55%), linear-gradient(135deg, #16181d, #0a0a0b)",
-                  }}
-                />
-                <span className="mono absolute left-4 top-4 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[0.65rem] uppercase tracking-wider text-fg-muted backdrop-blur">
-                  {tr(p.category, lang)}
-                </span>
-              </div>
+              <ProjectCarousel project={p} lang={lang} />
 
               <div className="flex items-start justify-between gap-4 p-7">
                 <div>

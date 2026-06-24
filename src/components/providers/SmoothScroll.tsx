@@ -5,6 +5,7 @@ import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { setLenis, scrollToId, navigateToSection } from "@/lib/scroll";
+import { bindLenis } from "@/lib/gallery";
 
 /**
  * Headless provider: one Lenis smooth-scroll instance driven by a single GSAP
@@ -22,6 +23,7 @@ export function SmoothScroll() {
     if (!reduce) {
       lenis = new Lenis({ autoRaf: false, lerp: 0.1, smoothWheel: true });
       setLenis(lenis);
+      bindLenis(lenis); // gallery rect cache invalidation (Lenis scroll → re-measure cards)
       lenis.on("scroll", ScrollTrigger.update);
       tick = (time: number) => lenis?.raf(time * 1000);
       gsap.ticker.add(tick);
@@ -59,6 +61,7 @@ export function SmoothScroll() {
       if (tick) gsap.ticker.remove(tick);
       lenis?.destroy();
       setLenis(null);
+      bindLenis(null);
     };
   }, []);
 

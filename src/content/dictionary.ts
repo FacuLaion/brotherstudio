@@ -45,7 +45,19 @@ export interface Dictionary {
   };
   manifesto: { kicker: string; lines: string[]; tags: string[] };
   services: { kicker: string; title: string; sub: string };
-  work: { kicker: string; title: string; sub: string; viewCase: string };
+  work: {
+    kicker: string;
+    title: string;
+    sub: string;
+    viewCase: string;
+    carousel: {
+      inControl: string;
+      hint: string;
+      prev: string;
+      next: string;
+      slide: string;
+    };
+  };
   products: {
     kicker: string;
     title: string;
@@ -112,7 +124,7 @@ const es: Dictionary = {
     loading: "Cargando modelos…",
     showHand: "Mostrá tu mano a la cámara",
     detected: "Mano detectada",
-    hint: "✊ Pellizcá (pulgar + índice) y arrastrá ↑/↓ · soltá para fijar · mové la cabeza para mirar",
+    hint: "✊ Pellizcá (pulgar + índice) y arrastrá ↑/↓ · ✌ dos dedos juntos sobre un proyecto y deslizá ← → · mové la cabeza para mirar",
     denied: "Necesitamos permiso de cámara para esto.",
     unsupported: "Tu dispositivo no soporta este modo.",
   },
@@ -142,6 +154,13 @@ const es: Dictionary = {
     title: "Trabajo que habla por sí solo.",
     sub: "Un recorrido por lo que construimos para nuestros clientes.",
     viewCase: "Ver caso",
+    carousel: {
+      inControl: "En control",
+      hint: "✌ Dos dedos juntos: deslizá ← →",
+      prev: "Imagen anterior",
+      next: "Imagen siguiente",
+      slide: "Imagen",
+    },
   },
   products: {
     kicker: "Productos enlatados",
@@ -218,7 +237,7 @@ const en: Dictionary = {
     loading: "Loading models…",
     showHand: "Show your hand to the camera",
     detected: "Hand detected",
-    hint: "✊ Pinch (thumb + index) and drag ↑/↓ · release to lock · move your head to look",
+    hint: "✊ Pinch (thumb + index) and drag ↑/↓ · ✌ two fingers together over a project and swipe ← → · move your head to look",
     denied: "We need camera permission for this.",
     unsupported: "Your device doesn't support this mode.",
   },
@@ -248,6 +267,13 @@ const en: Dictionary = {
     title: "Work that speaks for itself.",
     sub: "A journey through what we've built for our clients.",
     viewCase: "View case",
+    carousel: {
+      inControl: "In control",
+      hint: "✌ Two fingers together: swipe ← →",
+      prev: "Previous image",
+      next: "Next image",
+      slide: "Image",
+    },
   },
   products: {
     kicker: "Ready-made products",

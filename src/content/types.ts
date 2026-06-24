@@ -39,14 +39,24 @@ export interface ProductPlan {
   checkoutUrl?: string;
 }
 
+/** One slide inside a project's gesture-driven carousel. */
+export interface ProjectSlide {
+  /** Image URL (currently Unsplash; swap for real assets later). */
+  src: string;
+  /** Localized alt text for a11y. */
+  alt: Localized;
+}
+
 export interface Project {
   id: string;
   name: Localized;
   category: Localized;
   description: Localized;
   tags: string[];
-  /** Showcase still (placeholder for now). */
+  /** Cover still — also used as the carousel's first slide fallback. */
   image: string;
+  /** Carousel slides (4–5). Navigable by touch, arrows, keyboard and the hand gesture. */
+  slides: ProjectSlide[];
 }
 
 export interface Testimonial {

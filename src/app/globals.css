@@ -152,6 +152,66 @@ body {
     rotateX(calc(var(--head-y, 0) * 4deg)) translate3d(calc(var(--head-x, 0) * -28px), calc(var(--head-y, 0) * 28px), 0);
 }
 
+/* ============================================================
+   Hand-gesture cursor + project focus (Projects carousel).
+   Driven entirely by --hand-x/--hand-y and the root data-attrs
+   that GestureControl sets — no React on the hot path.
+   ============================================================ */
+.hand-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 70;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border: 2px solid var(--color-coral);
+  background: rgba(222, 73, 89, 0.22);
+  box-shadow: 0 0 16px 2px rgba(222, 73, 89, 0.5);
+  transform: translate(var(--hand-x, -100px), var(--hand-y, -100px)) translate(-50%, -50%);
+  transition:
+    width 0.18s ease,
+    height 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.2s ease,
+    transform 0.05s linear;
+  pointer-events: none;
+  opacity: 0;
+}
+/* visible only while a hand is being tracked */
+:root[data-hand-pointer="1"] .hand-cursor {
+  opacity: 1;
+}
+/* "armed" = index + middle together → ready to swipe slides */
+:root[data-hand-armed="1"] .hand-cursor {
+  width: 36px;
+  height: 36px;
+  background: rgba(222, 73, 89, 0.1);
+  border-color: var(--color-coral-bright);
+  animation: handArmedPulse 1.1s ease-in-out infinite;
+}
+@keyframes handArmedPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 16px 2px rgba(222, 73, 89, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 28px 7px rgba(255, 93, 108, 0.7);
+  }
+}
+
+/* The project card currently under the hand pointer */
+.card-focused::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  border: 2px solid var(--color-coral);
+  box-shadow: 0 0 34px rgba(222, 73, 89, 0.45);
+  pointer-events: none;
+}
+
 /* Cursor spotlight grid — the 1px gaps glow coral around the pointer */
 .spotlight-grid {
   position: relative;
